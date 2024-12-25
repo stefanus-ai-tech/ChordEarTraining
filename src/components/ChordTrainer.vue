@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, defineExpose } from 'vue';
 import * as Tone from 'tone';
 import type { Chord, ChordProgression } from '../types';
 import { chords, getRandomVoicing } from '../utils/chords';
 import {
   levels,
-  QUESTIONS_PER_LEVEL,
   CORRECT_POINTS,
   WRONG_PENALTY,
   getMaxScore,
@@ -15,17 +14,19 @@ import ChordButton from './ChordButton.vue';
 import LevelInfo from './LevelInfo.vue';
 
 const synth = new Tone.PolySynth().toDestination();
-const currentLevel = ref<number>(1);
-const score = ref<number>(0);
+const currentLevel = ref(1);
+const score = ref(0);
+const currentQuestionNumber = ref(0);
 const currentProgression = ref<ChordProgression>({
   key: 'C',
   chords: [],
 });
 const userAnswer = ref<string[]>([]);
-const isPlaying = ref<boolean>(false);
-const feedback = ref<string>('');
-const buttonsEnabled = ref<boolean>(false);
-const nextEnabled = ref<boolean>(false);
+const isPlaying = ref(false);
+const feedback = ref('');
+const buttonsEnabled = ref(true);
+const nextEnabled = ref(false);
+const completionMessageVisible = ref(false);
 
 const playChord = async (chord: Chord) => {
   const notes = getRandomVoicing(chord.roman);
@@ -34,16 +35,26 @@ const playChord = async (chord: Chord) => {
 };
 
 const generateProgression = () => {
-  const availableChords = levels[currentLevel.value - 1].availableChords;
-  const progression = [
-    chords.I, // Always start with tonic
-    chords[availableChords[Math.floor(Math.random() * availableChords.length)]],
-    chords[availableChords[Math.floor(Math.random() * availableChords.length)]],
-  ];
+  const currentLevelData = levels.find(
+    (level) => level.number === currentLevel.value
+  );
+  const availableChords = currentLevelData?.availableChords || [];
+  const chordsPerQuestion = currentLevelData?.chordsPerQuestion || 2;
+  const progression: Chord[] = [chords.I]; // Always start with tonic
+  for (let i = 0; i < chordsPerQuestion - 1; i++) {
+    progression.push(
+      chords[
+        availableChords[Math.floor(Math.random() * availableChords.length)]
+      ]
+    );
+  }
   currentProgression.value.chords = progression;
   userAnswer.value = [];
   feedback.value = '';
   nextEnabled.value = false;
+  if (currentQuestionNumber.value === 0) {
+    currentQuestionNumber.value = 1; // Reset question number on new progression
+  }
 };
 
 const playTonicGuide = async () => {
@@ -53,13 +64,14 @@ const playTonicGuide = async () => {
   await playChord(chords.IV);
   await playChord(chords.V);
   await playChord(chords.I);
-  await new Promise((resolve) => setTimeout(resolve, 500)); // Extra pause before progression
+  await new Promise((resolve) => setTimeout(resolve, 50)); // Extra pause before progression
   buttonsEnabled.value = true;
 };
 
 const playProgression = async () => {
   if (isPlaying.value) return;
   isPlaying.value = true;
+  buttonsEnabled.value = false; // Disable at the start of the full sequence
 
   await playTonicGuide();
 
@@ -68,35 +80,37 @@ const playProgression = async () => {
   }
 
   isPlaying.value = false;
+  buttonsEnabled.value = true; // Re-enable after the entire progression
 };
 
 const checkAnswer = () => {
   const correct = currentProgression.value.chords.every(
     (chord, i) => chord.roman === userAnswer.value[i]
   );
-
   if (correct) {
     feedback.value = 'Correct!';
     score.value += CORRECT_POINTS;
     nextEnabled.value = true;
-    buttonsEnabled.value = false; // Disable buttons after correct answer
-
-    // Auto-clear the answer after correct feedback
-    setTimeout(() => {
-      userAnswer.value = [];
-      feedback.value = '';
-    }, 1000); // Clear after 1 second
-
-    if (score.value >= getMaxScore(currentLevel.value)) {
-      if (currentLevel.value < levels.length) {
-        currentLevel.value++;
-        score.value = 0;
-      }
+    const currentLevelData = levels.find(
+      (level) => level.number === currentLevel.value
+    );
+    if (
+      currentQuestionNumber.value < (currentLevelData?.questionsPerLevel ?? 0)
+    ) {
+      // If there are more questions in the current level, proceed to the next question
+      setTimeout(nextQuestion, 1500);
+    } else if (currentLevel.value < levels.length) {
+      // If all questions are answered, move to the next level
+      currentLevel.value++;
+      generateProgression();
+      currentQuestionNumber.value = 1; // Reset question number on new level
+      playProgression();
+    } else {
+      completionMessageVisible.value = true;
     }
   } else {
-    feedback.value = 'Try again';
+    feedback.value = 'Try again.';
     score.value = Math.max(0, score.value + WRONG_PENALTY);
-
     // Auto-clear the answer after incorrect feedback
     setTimeout(() => {
       userAnswer.value = [];
@@ -106,12 +120,24 @@ const checkAnswer = () => {
 };
 
 const selectChord = (roman: string) => {
-  if (userAnswer.value.length < 3 && buttonsEnabled.value) {
+  const currentLevelData = levels.find(
+    (level) => level.number === currentLevel.value
+  );
+  if (
+    userAnswer.value.length < (currentLevelData?.chordsPerQuestion || 0) &&
+    buttonsEnabled.value
+  ) {
     userAnswer.value.push(roman);
   }
 };
 
+const clearAnswer = () => {
+  userAnswer.value = [];
+  feedback.value = '';
+};
+
 const nextQuestion = () => {
+  currentQuestionNumber.value++; // Increment question number
   generateProgression();
   playProgression();
 };
@@ -120,13 +146,36 @@ onMounted(() => {
   generateProgression();
   playProgression();
 });
+
+defineExpose({
+  currentLevel,
+  score,
+  isPlaying,
+  feedback,
+  buttonsEnabled,
+  nextEnabled,
+  completionMessageVisible,
+  userAnswer,
+  levels,
+  nextQuestion,
+  playProgression,
+  selectChord,
+  checkAnswer,
+  getMaxScore,
+  clearAnswer, // Expose the new method
+});
 </script>
 
 <template>
   <div class="chord-trainer">
     <LevelInfo :current-level="currentLevel" />
 
-    <ProgressBar :current="score" :total="getMaxScore(currentLevel)" />
+    <ProgressBar
+      :questionNumber="currentQuestionNumber"
+      :totalQuestions="
+        levels.find((level) => level.number === currentLevel)
+          ?.questionsPerLevel ?? 0
+      " />
 
     <div class="controls">
       <button
@@ -147,11 +196,16 @@ onMounted(() => {
       <h2>Choices</h2>
       <div class="chord-buttons">
         <ChordButton
-          v-for="roman in levels[currentLevel - 1].availableChords"
+          v-for="roman in levels[currentLevel - 1]?.availableChords"
           :key="roman"
           :roman="roman"
           @click="selectChord(roman)"
-          :disabled="!buttonsEnabled || userAnswer.length >= 3" />
+          :disabled="
+            !buttonsEnabled ||
+            userAnswer.length >=
+              (levels.find((level) => level.number === currentLevel)
+                ?.chordsPerQuestion ?? 0)
+          " />
       </div>
 
       <div class="user-answer">
@@ -162,14 +216,28 @@ onMounted(() => {
           <button
             class="primary-button"
             @click="checkAnswer"
-            :disabled="!buttonsEnabled || userAnswer.length !== 3">
+            :disabled="
+              !buttonsEnabled ||
+              userAnswer.length !==
+                (levels.find((level) => level.number === currentLevel)
+                  ?.chordsPerQuestion ?? 0)
+            ">
             Check Answer
+          </button>
+          <button
+            class="secondary-button"
+            @click="clearAnswer"
+            :disabled="!userAnswer.length">
+            Clear
           </button>
         </div>
       </div>
 
       <div class="feedback" :class="{ correct: feedback === 'Correct!' }">
         {{ feedback }}
+      </div>
+      <div v-if="completionMessageVisible" class="completion-message">
+        Congratulations! You have completed all levels!
       </div>
     </div>
   </div>
@@ -269,6 +337,13 @@ button:disabled {
 }
 
 .feedback.correct {
+  color: #4caf50;
+}
+
+.completion-message {
+  margin-top: 2rem;
+  font-size: 1.5rem;
+  font-weight: bold;
   color: #4caf50;
 }
 </style>
