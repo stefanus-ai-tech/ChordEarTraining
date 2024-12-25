@@ -1,4 +1,4 @@
-const questionsPerLevel = 2;
+const questionsPerLevel = 10;
 
 const chordMappings: { [key: string]: string[] } = {
   I: ['C4', 'E4', 'G4'],
