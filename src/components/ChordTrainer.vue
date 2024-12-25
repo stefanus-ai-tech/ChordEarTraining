@@ -240,124 +240,100 @@ defineExpose({
 </template>
 
 <style scoped>
-.hear-again-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 1rem; /* Adjust as needed */
-}
-.hear-again-button {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  background: #2196f3;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-.hear-again-button:hover:not(:disabled) {
-  background-color: #1976d2;
-}
 .chord-trainer {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chord-trainer:hover {
+  transform: translateY(-2px);
 }
 
 h2 {
-  color: #666;
-  margin: 1.5rem 0;
+  color: #444;
+  margin: 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .controls {
-  margin: 2rem 0;
+  margin: 1rem 0;
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   justify-content: center;
 }
 
 .chord-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   justify-content: center;
-  margin: 1rem 0;
+  margin: 0.75rem 0;
+  flex-wrap: wrap;
 }
 
 .primary-button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 8px;
-  background: #2196f3;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: white;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .primary-button:hover:not(:disabled) {
-  background-color: #1976d2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
 }
 
 .secondary-button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   border: 2px solid #2196f3;
-  border-radius: 8px;
-  background: white;
+  border-radius: 12px;
+  background: transparent;
   color: #2196f3;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .secondary-button:hover:not(:disabled) {
-  background-color: #e3f2fd;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  background-color: rgba(33, 150, 243, 0.1);
+  transform: translateY(-1px);
 }
 
 .answer-section {
-  margin-top: 2rem;
+  margin-top: 1rem;
   text-align: center;
 }
 
 .answer-display {
-  margin: 1rem 0;
-  padding: 1rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1.2rem;
-  color: #666;
-}
-
-.answer-controls {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  color: #555;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .feedback {
-  margin-top: 1rem;
-  font-weight: bold;
-  font-size: 1.2rem;
+  margin-top: 0.75rem;
+  font-weight: 600;
+  font-size: 1.1rem;
   color: #666;
-  transition: color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .feedback.correct {
   color: #4caf50;
-}
-
-.completion-message {
-  margin-top: 2rem;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #4caf50;
+  transform: scale(1.05);
 }
 </style>

@@ -25,27 +25,32 @@ defineProps<{
 </template>
 <style scoped>
 .progress-container {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+
 .progress-text {
   text-align: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
+
 .progress-bar {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background-color: #e0e0e0;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
 }
+
 .progress-fill {
   height: 100%;
-  background-color: #4caf50;
-  transition: width 0.3s ease;
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
