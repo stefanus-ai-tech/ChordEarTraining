@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, defineExpose } from 'vue';
+
+const startButtonVisible = ref(true);
 import * as Tone from 'tone';
 import type { Chord, ChordProgression } from '../types';
 import { chords, getRandomVoicing } from '../utils/chords';
@@ -132,6 +134,7 @@ const nextQuestion = () => {
 const startGame = () => {
   generateProgression();
   playProgression();
+  startButtonVisible.value = false;
 };
 
 onMounted(() => {
@@ -174,7 +177,7 @@ defineExpose({
       " />
     <div class="controls">
       <button
-        v-if="currentLevel === 1 && !isPlaying"
+        v-if="startButtonVisible"
         class="primary-button"
         @click="startGame">
         Start
@@ -183,7 +186,7 @@ defineExpose({
         class="secondary-button"
         @click="playProgression"
         :disabled="isPlaying"
-        :style="{ 'margin-left': currentLevel === 1 ? '1rem' : '0' }">
+        :style="{ 'margin-left': currentLevel === 1 ? '0rem' : '0' }">
         Hear Again
       </button>
     </div>
@@ -237,6 +240,24 @@ defineExpose({
 </template>
 
 <style scoped>
+.hear-again-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem; /* Adjust as needed */
+}
+.hear-again-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background: #2196f3;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.hear-again-button:hover:not(:disabled) {
+  background-color: #1976d2;
+}
 .chord-trainer {
   max-width: 800px;
   margin: 0 auto;
