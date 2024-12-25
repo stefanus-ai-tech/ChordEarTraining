@@ -129,9 +129,18 @@ const nextQuestion = () => {
   nextEnabled.value = false; // Reset nextEnabled
 };
 
-onMounted(() => {
+const startGame = () => {
   generateProgression();
   playProgression();
+};
+
+onMounted(() => {
+  if (currentLevel.value === 1) {
+    // Do nothing, wait for the start button
+  } else {
+    generateProgression();
+    playProgression();
+  }
 });
 
 defineExpose({
@@ -149,7 +158,8 @@ defineExpose({
   selectChord,
   checkAnswer,
   getMaxScore,
-  clearAnswer, // Expose the new method
+  clearAnswer,
+  startGame, // Expose the new method
 });
 </script>
 
@@ -164,9 +174,16 @@ defineExpose({
       " />
     <div class="controls">
       <button
+        v-if="currentLevel === 1 && !isPlaying"
+        class="primary-button"
+        @click="startGame">
+        Start
+      </button>
+      <button
         class="secondary-button"
         @click="playProgression"
-        :disabled="isPlaying">
+        :disabled="isPlaying"
+        :style="{ 'margin-left': currentLevel === 1 ? '1rem' : '0' }">
         Hear Again
       </button>
     </div>
