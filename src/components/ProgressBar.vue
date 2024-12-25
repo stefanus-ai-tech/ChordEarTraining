@@ -4,7 +4,6 @@ defineProps<{
   totalQuestions: number;
 }>();
 </script>
-
 <template>
   <div class="progress-container">
     <div class="progress-text">
@@ -13,12 +12,17 @@ defineProps<{
     <div class="progress-bar">
       <div
         class="progress-fill"
-        :style="{ width: `${(questionNumber / totalQuestions) * 100}%` }"
+        :style="{
+          width: `${
+            questionNumber > 0
+              ? ((questionNumber - 1) / totalQuestions) * 100
+              : 0
+          }%`,
+        }"
         v-if="totalQuestions > 0"></div>
     </div>
   </div>
 </template>
-
 <style scoped>
 .progress-container {
   margin: 1rem 0;
@@ -27,13 +31,11 @@ defineProps<{
   flex-direction: column;
   align-items: center;
 }
-
 .progress-text {
   text-align: center;
   margin-bottom: 0.5rem;
   color: #666;
 }
-
 .progress-bar {
   width: 100%;
   height: 8px;
@@ -41,7 +43,6 @@ defineProps<{
   border-radius: 4px;
   overflow: hidden;
 }
-
 .progress-fill {
   height: 100%;
   background-color: #4caf50;

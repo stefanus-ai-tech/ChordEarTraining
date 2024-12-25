@@ -16,7 +16,7 @@ import LevelInfo from './LevelInfo.vue';
 const synth = new Tone.PolySynth().toDestination();
 const currentLevel = ref(1);
 const score = ref(0);
-const currentQuestionNumber = ref(0);
+const currentQuestionNumber = ref(1);
 const currentProgression = ref<ChordProgression>({
   key: 'C',
   chords: [],
@@ -31,7 +31,7 @@ const completionMessageVisible = ref(false);
 const playChord = async (chord: Chord) => {
   const notes = getRandomVoicing(chord.roman);
   synth.triggerAttackRelease(notes, '1n');
-  await new Promise((resolve) => setTimeout(resolve, 2000)); // 0.3s delay between chords
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s delay between chords
 };
 
 const generateProgression = () => {
@@ -42,19 +42,13 @@ const generateProgression = () => {
   const chordsPerQuestion = currentLevelData?.chordsPerQuestion || 2;
   const progression: Chord[] = [chords.I]; // Always start with tonic
   for (let i = 0; i < chordsPerQuestion - 1; i++) {
-    progression.push(
-      chords[
-        availableChords[Math.floor(Math.random() * availableChords.length)]
-      ]
-    );
+    const randomChord =
+      availableChords[Math.floor(Math.random() * availableChords.length)];
+    progression.push(chords[randomChord]);
   }
   currentProgression.value.chords = progression;
   userAnswer.value = [];
   feedback.value = '';
-  nextEnabled.value = false;
-  if (currentQuestionNumber.value === 0) {
-    currentQuestionNumber.value = 1; // Reset question number on new progression
-  }
 };
 
 const playTonicGuide = async () => {
@@ -72,13 +66,10 @@ const playProgression = async () => {
   if (isPlaying.value) return;
   isPlaying.value = true;
   buttonsEnabled.value = false; // Disable at the start of the full sequence
-
   await playTonicGuide();
-
   for (const chord of currentProgression.value.chords) {
     await playChord(chord);
   }
-
   isPlaying.value = false;
   buttonsEnabled.value = true; // Re-enable after the entire progression
 };
@@ -102,20 +93,15 @@ const checkAnswer = () => {
     } else if (currentLevel.value < levels.length) {
       // If all questions are answered, move to the next level
       currentLevel.value++;
+      playProgression();
       generateProgression();
       currentQuestionNumber.value = 1; // Reset question number on new level
-      playProgression();
     } else {
       completionMessageVisible.value = true;
     }
   } else {
     feedback.value = 'Try again.';
     score.value = Math.max(0, score.value + WRONG_PENALTY);
-    // Auto-clear the answer after incorrect feedback
-    setTimeout(() => {
-      userAnswer.value = [];
-      feedback.value = '';
-    }, 1000); // Clear after 1 second
   }
 };
 
@@ -140,6 +126,7 @@ const nextQuestion = () => {
   currentQuestionNumber.value++; // Increment question number
   generateProgression();
   playProgression();
+  nextEnabled.value = false; // Reset nextEnabled
 };
 
 onMounted(() => {
@@ -169,21 +156,13 @@ defineExpose({
 <template>
   <div class="chord-trainer">
     <LevelInfo :current-level="currentLevel" />
-
     <ProgressBar
       :questionNumber="currentQuestionNumber"
       :totalQuestions="
         levels.find((level) => level.number === currentLevel)
           ?.questionsPerLevel ?? 0
       " />
-
     <div class="controls">
-      <button
-        class="primary-button"
-        @click="nextQuestion"
-        :disabled="isPlaying || !nextEnabled">
-        Hear Next
-      </button>
       <button
         class="secondary-button"
         @click="playProgression"
@@ -191,7 +170,6 @@ defineExpose({
         Hear Again
       </button>
     </div>
-
     <div class="answer-section">
       <h2>Choices</h2>
       <div class="chord-buttons">
@@ -207,7 +185,6 @@ defineExpose({
                 ?.chordsPerQuestion ?? 0)
           " />
       </div>
-
       <div class="user-answer">
         <div class="answer-display">
           {{ userAnswer.join(' - ') || 'Select chords...' }}
@@ -232,7 +209,6 @@ defineExpose({
           </button>
         </div>
       </div>
-
       <div class="feedback" :class="{ correct: feedback === 'Correct!' }">
         {{ feedback }}
       </div>
