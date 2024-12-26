@@ -168,6 +168,10 @@ defineExpose({
 
 <template>
   <div class="chord-trainer">
+    <div class="instructions">
+      How to play this game: In every question, there is cadence I IV V I, then
+      the chord you should guess is after that cadence.
+    </div>
     <LevelInfo :current-level="currentLevel" />
     <ProgressBar
       :questionNumber="currentQuestionNumber"
@@ -240,6 +244,14 @@ defineExpose({
 </template>
 
 <style scoped>
+.instructions {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #333;
+  /* to center the text */
+  text-align: center;
+}
+
 .chord-trainer {
   max-width: 600px;
   margin: 0 auto;
