@@ -15,7 +15,18 @@ import ProgressBar from './ProgressBar.vue';
 import ChordButton from './ChordButton.vue';
 import LevelInfo from './LevelInfo.vue';
 
-const synth = new Tone.PolySynth().toDestination();
+const synth = new Tone.PolySynth(Tone.Synth, {
+  oscillator: {
+    type: 'sine', // Use sine wave for smoother sound
+  },
+  envelope: {
+    attack: 0.1, // Gradual attack for smoother start
+    decay: 0.2, // Smooth decay
+    sustain: 0.8, // High sustain level
+    release: 1.5, // Longer release for smoother end
+  },
+  volume: -8, // Slightly reduce volume to prevent clipping
+}).toDestination();
 const currentLevel = ref(1);
 const score = ref(0);
 const currentQuestionNumber = ref(1);
