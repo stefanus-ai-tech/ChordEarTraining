@@ -4,7 +4,7 @@ import { ref, onMounted, defineExpose } from 'vue';
 const startButtonVisible = ref(true);
 import * as Tone from 'tone';
 import type { Chord, ChordProgression } from '../types';
-import { chords, getRandomVoicing } from '../utils/chords';
+import { chords, getRandomVoicing, majorKeys } from '../utils/chords';
 import {
   levels,
   CORRECT_POINTS,
@@ -31,7 +31,8 @@ const nextEnabled = ref(false);
 const completionMessageVisible = ref(false);
 
 const playChord = async (chord: Chord) => {
-  const notes = getRandomVoicing(chord.roman);
+  // Pass both the roman numeral and the current key
+  const notes = getRandomVoicing(chord.roman, currentProgression.value.key);
   synth.triggerAttackRelease(notes, '1n');
   await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s delay between chords
 };
@@ -42,6 +43,16 @@ const generateProgression = () => {
   );
   const availableChords = currentLevelData?.availableChords || [];
   const chordsPerQuestion = currentLevelData?.chordsPerQuestion || 2;
+
+  // Get a random key that's different from the current key
+  let newKey;
+  do {
+    newKey = majorKeys[Math.floor(Math.random() * majorKeys.length)];
+  } while (newKey === currentProgression.value.key);
+
+  // Update the key in the current progression
+  currentProgression.value.key = newKey;
+
   const progression: Chord[] = [chords.I]; // Always start with tonic
   for (let i = 0; i < chordsPerQuestion - 1; i++) {
     const randomChord =

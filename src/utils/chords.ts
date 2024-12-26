@@ -1,5 +1,20 @@
 import type { Chord } from '../types';
 
+export const majorKeys = [
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B',
+];
+
 // Chord voicings for each inversion
 const chordVoicings = {
   I: {
@@ -39,12 +54,54 @@ const chordVoicings = {
   },
 };
 
-export const getRandomVoicing = (roman: string) => {
+const noteOffsets = {
+  C: 0,
+  'C#': 1,
+  D: 2,
+  'D#': 3,
+  E: 4,
+  F: 5,
+  'F#': 6,
+  G: 7,
+  'G#': 8,
+  A: 9,
+  'A#': 10,
+  B: 11,
+};
+
+const transposeNote = (note: string, targetKey: string): string => {
+  const [noteName, octave] = [note.slice(0, -1), parseInt(note.slice(-1))];
+  const semitones = noteOffsets[targetKey as keyof typeof noteOffsets];
+  const baseNoteValue = noteOffsets[noteName as keyof typeof noteOffsets];
+
+  let newNoteValue = (baseNoteValue + semitones) % 12;
+  let newOctave = octave;
+
+  // Adjust octave if we wrapped around
+  if (baseNoteValue + semitones >= 12) {
+    newOctave++;
+  }
+
+  const newNoteName = Object.keys(noteOffsets).find(
+    (key) => noteOffsets[key as keyof typeof noteOffsets] === newNoteValue
+  );
+
+  return `${newNoteName}${newOctave}`;
+};
+
+export const getRandomVoicing = (roman: string, key: string = 'C') => {
   const voicings = chordVoicings[roman as keyof typeof chordVoicings];
   const voicingTypes = ['root', 'first', 'second'] as const;
   const randomVoicing =
     voicingTypes[Math.floor(Math.random() * voicingTypes.length)];
-  return voicings?.[randomVoicing] ?? voicings?.root;
+
+  const baseVoicing = voicings?.[randomVoicing] ?? voicings?.root;
+
+  // If we're in C, return the base voicing
+  if (key === 'C') return baseVoicing;
+
+  // Otherwise transpose each note
+  return baseVoicing.map((note) => transposeNote(note, key));
 };
 
 export const chords: Record<string, Chord> = {
