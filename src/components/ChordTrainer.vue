@@ -33,123 +33,125 @@ const synthConfigs: Record<
 > = {
   Smooth: {
     create: () => {
-      const limiter = new Tone.Limiter(-3).toDestination();
-      const compressor = new Tone.Compressor({
-        threshold: -24,
-        ratio: 12,
-        attack: 0.003,
-        release: 0.25,
-      }).connect(limiter);
+      // Single shared limiter for better performance
+      const limiter = new Tone.Limiter(-6).toDestination();
 
       return new Tone.PolySynth(Tone.Synth, {
         oscillator: {
-          type: 'sine',
+          type: 'sine', // Sine waves are computationally lighter than complex waveforms
         },
         envelope: {
-          attack: 0.05,
+          attack: 0.1, // Slightly longer attack to prevent clicks
           decay: 0.1,
-          sustain: 0.6,
-          release: 0.5,
+          sustain: 0.5,
+          release: 0.3, // Shorter release for less CPU usage
         },
-        volume: -12,
-      }).connect(compressor);
+        volume: -15,
+        // Reduced polyphony for mobile
+        maxPolyphony: 4,
+      }).connect(limiter);
     },
     type: 'Smooth',
   },
   FM: {
     create: () => {
-      const limiter = new Tone.Limiter(-3).toDestination();
+      const limiter = new Tone.Limiter(-6).toDestination();
       return new Tone.PolySynth(Tone.FMSynth, {
-        modulationIndex: 10,
-        harmonicity: 3,
+        modulationIndex: 5, // Reduced from 10
+        harmonicity: 2, // Reduced from 3
         envelope: {
-          attack: 0.05,
+          attack: 0.1,
           decay: 0.1,
-          sustain: 0.6,
-          release: 0.5,
+          sustain: 0.5,
+          release: 0.3,
         },
-        volume: -15,
+        volume: -18,
+        maxPolyphony: 3, // Further reduced polyphony for FM synthesis
       }).connect(limiter);
     },
     type: 'FM',
   },
   AM: {
     create: () => {
-      const limiter = new Tone.Limiter(-3).toDestination();
+      const limiter = new Tone.Limiter(-6).toDestination();
       return new Tone.PolySynth(Tone.AMSynth, {
-        harmonicity: 2,
+        harmonicity: 1.5, // Reduced from 2
         envelope: {
-          attack: 0.05,
+          attack: 0.1,
           decay: 0.1,
-          sustain: 0.6,
-          release: 0.5,
+          sustain: 0.5,
+          release: 0.3,
         },
-        volume: -15,
+        volume: -18,
+        maxPolyphony: 3,
       }).connect(limiter);
     },
     type: 'AM',
   },
   Duo: {
     create: () => {
-      const limiter = new Tone.Limiter(-3).toDestination();
+      const limiter = new Tone.Limiter(-6).toDestination();
       return new Tone.PolySynth(Tone.DuoSynth, {
-        vibratoAmount: 0.5,
-        vibratoRate: 5,
-        harmonicity: 1.5,
-        volume: -18,
+        vibratoAmount: 0.3, // Reduced from 0.5
+        vibratoRate: 4, // Reduced from 5
+        harmonicity: 1.25, // Reduced from 1.5
+        volume: -20,
+        maxPolyphony: 2, // DuoSynth is CPU-heavy, keep polyphony minimal
       }).connect(limiter);
     },
     type: 'Duo',
   },
   Mono: {
     create: () => {
-      const limiter = new Tone.Limiter(-3).toDestination();
+      const limiter = new Tone.Limiter(-6).toDestination();
       return new Tone.PolySynth(Tone.MonoSynth, {
         envelope: {
-          attack: 0.05,
+          attack: 0.1,
           decay: 0.1,
-          sustain: 0.6,
-          release: 0.5,
+          sustain: 0.5,
+          release: 0.3,
         },
-        volume: -15,
+        volume: -18,
+        maxPolyphony: 3,
       }).connect(limiter);
     },
     type: 'Mono',
   },
   Pluck: {
     create: () => {
-      const limiter = new Tone.Limiter(-3).toDestination();
-      const voices = Array.from({ length: 4 }, () =>
-        // Reduced from 6 to 4 voices
+      const limiter = new Tone.Limiter(-6).toDestination();
+      // Reduced number of voices
+      const voices = Array.from({ length: 3 }, () =>
         new Tone.PluckSynth({
-          attackNoise: 0.5, // Reduced from 1
-          dampening: 2000, // Increased from 1000
-          resonance: 0.95, // Slightly reduced
-          release: 1, // Reduced from 2
-          volume: -12,
+          attackNoise: 0.3, // Reduced from 0.5
+          dampening: 2500, // Increased for shorter decay
+          resonance: 0.9, // Reduced slightly
+          release: 0.8, // Reduced from 1
+          volume: -15,
         }).connect(limiter)
       );
 
       // Lighter reverb settings
       const reverb = new Tone.Reverb({
-        decay: 1.5, // Reduced from 3
-        wet: 0.2, // Reduced from 0.3
-        preDelay: 0.05, // Reduced from 0.1
+        decay: 1.0, // Reduced from 1.5
+        wet: 0.15, // Reduced from 0.2
+        preDelay: 0.03, // Reduced from 0.05
       }).connect(limiter);
 
       voices.forEach((voice) => voice.connect(reverb));
 
-      // Rest of the Pluck implementation remains the same
       let activeVoices = new Map<string, number>();
       let nextVoice = 0;
 
       return {
         triggerAttackRelease: (notes: string[], duration: number) => {
-          // Clean up any previous notes
+          // Limit the number of simultaneous notes for mobile
+          const maxSimultaneousNotes = 3;
+          const limitedNotes = notes.slice(0, maxSimultaneousNotes);
+
           activeVoices.clear();
 
-          notes.forEach((note) => {
-            // Use round-robin voice allocation
+          limitedNotes.forEach((note) => {
             const voiceIndex = nextVoice;
             nextVoice = (nextVoice + 1) % voices.length;
 
