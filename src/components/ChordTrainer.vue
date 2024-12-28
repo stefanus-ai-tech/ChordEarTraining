@@ -47,8 +47,6 @@ const synthConfigs: Record<
           release: 0.3, // Shorter release for less CPU usage
         },
         volume: -15,
-        // Reduced polyphony for mobile
-        maxPolyphony: 4,
       }).connect(limiter);
     },
     type: 'Smooth',
@@ -66,7 +64,6 @@ const synthConfigs: Record<
           release: 0.3,
         },
         volume: -18,
-        maxPolyphony: 3, // Further reduced polyphony for FM synthesis
       }).connect(limiter);
     },
     type: 'FM',
@@ -83,7 +80,6 @@ const synthConfigs: Record<
           release: 0.3,
         },
         volume: -18,
-        maxPolyphony: 3,
       }).connect(limiter);
     },
     type: 'AM',
@@ -96,7 +92,6 @@ const synthConfigs: Record<
         vibratoRate: 4, // Reduced from 5
         harmonicity: 1.25, // Reduced from 1.5
         volume: -20,
-        maxPolyphony: 2, // DuoSynth is CPU-heavy, keep polyphony minimal
       }).connect(limiter);
     },
     type: 'Duo',
@@ -112,7 +107,6 @@ const synthConfigs: Record<
           release: 0.3,
         },
         volume: -18,
-        maxPolyphony: 3,
       }).connect(limiter);
     },
     type: 'Mono',
