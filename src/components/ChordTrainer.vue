@@ -15,10 +15,10 @@ import LevelInfo from './LevelInfo.vue';
 
 type SynthType = 'Smooth' | 'FM' | 'AM' | 'Duo' | 'Mono' | 'Pluck';
 
-interface SynthConfig {
-  create: () => Tone.PolySynth;
-  type: SynthType;
-}
+// interface SynthConfig {
+//   create: () => Tone.PolySynth;
+//   type: SynthType;
+// }
 
 // Add this after the imports
 const synthTypes: SynthType[] = ['Smooth', 'FM', 'AM', 'Duo', 'Mono', 'Pluck'];
