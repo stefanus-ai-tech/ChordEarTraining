@@ -49,6 +49,12 @@ const playChord = async (chord: Chord) => {
   await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s delay between chords
 };
 
+const backspace = () => {
+  if (userAnswer.value.length > 0) {
+    userAnswer.value.pop();
+    userAnswerCorrectness.value = [];
+  }
+};
 const generateProgression = () => {
   const currentLevelData = levels.find(
     (level) => level.number === currentLevel.value
@@ -185,6 +191,7 @@ defineExpose({
   completionMessageVisible,
   userAnswer,
   levels,
+  backspace,
   nextQuestion,
   playProgression,
   selectChord,
@@ -290,6 +297,12 @@ defineExpose({
                   ?.chordsPerQuestion ?? 0)
             ">
             Check Answer
+          </button>
+          <button
+            class="secondary-button"
+            @click="backspace"
+            :disabled="!userAnswer.length">
+            Backspace
           </button>
           <button
             class="secondary-button"
