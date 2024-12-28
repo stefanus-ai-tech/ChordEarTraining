@@ -35,6 +35,7 @@ const currentProgression = ref<ChordProgression>({
   chords: [],
 });
 const userAnswer = ref<string[]>([]);
+const userAnswerCorrectness = ref<boolean[]>([]);
 const isPlaying = ref(false);
 const feedback = ref('');
 const buttonsEnabled = ref(true);
@@ -99,9 +100,10 @@ const playProgression = async () => {
 };
 
 const checkAnswer = () => {
-  const correct = currentProgression.value.chords.every(
+  userAnswerCorrectness.value = currentProgression.value.chords.map(
     (chord, i) => chord.roman === userAnswer.value[i]
   );
+  const correct = userAnswerCorrectness.value.every((isCorrect) => isCorrect);
   if (correct) {
     feedback.value = 'Correct!';
     score.value += CORRECT_POINTS;
@@ -144,6 +146,7 @@ const selectChord = (roman: string) => {
 const clearAnswer = () => {
   userAnswer.value = [];
   feedback.value = '';
+  userAnswerCorrectness.value = [];
 };
 
 const nextQuestion = () => {
@@ -233,7 +236,22 @@ defineExpose({
       </div>
       <div class="user-answer">
         <div class="answer-display">
-          {{ userAnswer.join(' - ') || 'Select chords...' }}
+          <template v-if="userAnswer.length > 0">
+            <span
+              v-for="(chord, index) in userAnswer"
+              :key="index"
+              :class="{
+                correct:
+                  feedback === 'Correct!' &&
+                  currentProgression.chords[index]?.roman === chord,
+                incorrect:
+                  feedback !== 'Correct!' &&
+                  userAnswerCorrectness[index] === false,
+              }">
+              {{ chord }}
+            </span>
+          </template>
+          <template v-else> Select chords... </template>
         </div>
         <div class="answer-controls">
           <button
@@ -369,5 +387,22 @@ h2 {
 .feedback.correct {
   color: #4caf50;
   transform: scale(1.05);
+}
+
+.answer-display span {
+  display: inline-block;
+  margin-right: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.answer-display span.correct {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+.answer-display span.incorrect {
+  background-color: #ffcdd2;
+  color: #b71c1c;
 }
 </style>
