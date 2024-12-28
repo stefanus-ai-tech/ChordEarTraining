@@ -1,4 +1,8 @@
-# Chord Ear Training
+## Try the demo 
+
+https://chord-ear-training.netlify.app/
+
+## Chord Ear Training
 
 A Vue 3 + TypeScript application designed to help musicians develop their chord recognition skills through interactive ear training exercises.
 
