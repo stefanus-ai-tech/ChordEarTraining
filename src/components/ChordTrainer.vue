@@ -22,6 +22,7 @@ type SynthType = 'Smooth' | 'FM' | 'AM' | 'Duo' | 'Mono' | 'Pluck';
 
 // Add this after the imports
 const synthTypes: SynthType[] = ['Smooth', 'FM', 'AM', 'Duo', 'Mono', 'Pluck'];
+const isToneStarted = ref(false); // Add a ref to track if Tone.js is started
 
 const synthConfigs: Record<
   SynthType,
@@ -116,16 +117,15 @@ const synthConfigs: Record<
 
 const currentSynthType = ref<SynthType>('Smooth');
 
-const synths = new Map<SynthType, Tone.PolySynth<any>>();
-// Replace the existing synth declaration with this factory function
-// Replace the existing synth declaration with these functions
+const synths = new Map<SynthType, Tone.PolySynth<any>>(); // Keep synths as a map
+
 const createSynth = (type: SynthType) => {
   const synth = synthConfigs[type].create();
   synths.set(type, synth);
   return synth;
 };
 
-let synth = createSynth('Smooth');
+let synth: Tone.PolySynth<any>; // Declare synth outside for proper typing
 
 const changeSynthType = (type: SynthType) => {
   let nextSynth = synths.get(type);
@@ -166,10 +166,10 @@ const completionMessageVisible = ref(false);
 const startButtonVisible = ref(true);
 
 const playChord = async (chord: Chord) => {
-  // Pass both the roman numeral and the current key
+  if (!isToneStarted.value) return; // Don't play if Tone.js isn't started
   const notes = getRandomVoicing(chord.roman, currentProgression.value.key);
   synth.triggerAttackRelease(notes, '1n');
-  await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s delay between chords
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 };
 
 const backspace = () => {
@@ -221,15 +221,15 @@ const playTonicGuide = async () => {
 };
 
 const playProgression = async () => {
-  if (isPlaying.value) return;
+  if (!isToneStarted.value || isPlaying.value) return;
   isPlaying.value = true;
-  buttonsEnabled.value = false; // Disable at the start of the full sequence
+  buttonsEnabled.value = false;
   await playTonicGuide();
   for (const chord of currentProgression.value.chords) {
     await playChord(chord);
   }
   isPlaying.value = false;
-  buttonsEnabled.value = true; // Re-enable after the entire progression
+  buttonsEnabled.value = true;
 };
 
 const checkAnswer = () => {
@@ -289,19 +289,23 @@ const nextQuestion = () => {
   nextEnabled.value = false; // Reset nextEnabled
 };
 
-const startGame = () => {
+const startGame = async () => {
+  if (!isToneStarted.value) {
+    await Tone.start();
+    isToneStarted.value = true;
+    // Create default synth after starting
+    if (!synths.has(currentSynthType.value)) {
+      createSynth(currentSynthType.value);
+    }
+    synth = synths.get(currentSynthType.value)!; // Assign the initial synth
+  }
   generateProgression();
   playProgression();
   startButtonVisible.value = false;
 };
 
 onMounted(() => {
-  if (currentLevel.value === 1) {
-    // Do nothing, wait for the start button
-  } else {
-    generateProgression();
-    playProgression();
-  }
+  // Do nothing on mount, wait for user to click "Start"
 });
 
 defineExpose({
