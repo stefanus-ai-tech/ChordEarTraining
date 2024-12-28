@@ -13,8 +13,8 @@ import ProgressBar from './ProgressBar.vue';
 import ChordButton from './ChordButton.vue';
 import LevelInfo from './LevelInfo.vue';
 // type SoundOutput = Pizzicato.Sound | Pizzicato.Group;
-type SynthType = 'Sine' | 'Square' | 'Sawtooth' | 'Piano';
-const synthTypes: SynthType[] = ['Sine', 'Square', 'Sawtooth', 'Piano'];
+type SynthType = 'Sine' | 'Square' | 'Sawtooth' | 'Triangle';
+const synthTypes: SynthType[] = ['Sine', 'Square', 'Sawtooth', 'Triangle'];
 const audioContext = ref<AudioContext | null>(null);
 
 const createSynthConfigs = () => {
@@ -27,9 +27,16 @@ const createSynthConfigs = () => {
             options: {
               type: 'sine',
               frequency: noteToFrequency(note),
-              attack: 0.05, // Faster attack for better mobile response
-              release: 0.1, // Shorter release to prevent audio buildup
-              volume: 0.3, // Lower volume to prevent distortion on mobile
+              attack: 0.05,
+              decay: 0.1,
+              sustain: 0.8,
+              release: 0.1,
+              volume: 0.3,
+              pitch: 0,
+              detune: 0,
+              pan: 0,
+              fadeIn: 0.02,
+              fadeOut: 0.05,
             },
           })
       );
@@ -45,8 +52,15 @@ const createSynthConfigs = () => {
               type: 'square',
               frequency: noteToFrequency(note),
               attack: 0.05,
+              decay: 0.15,
+              sustain: 0.6,
               release: 0.1,
-              volume: 0.2, // Even lower volume for square wave as it's harsher
+              volume: 0.2,
+              harmonicity: 1.5,
+              modulationFrequency: 2,
+              modulationDepth: 0.1,
+              distortion: 0.1,
+              fadeIn: 0.03,
             },
           })
       );
@@ -62,60 +76,62 @@ const createSynthConfigs = () => {
               type: 'sawtooth',
               frequency: noteToFrequency(note),
               attack: 0.05,
+              decay: 0.2,
+              sustain: 0.7,
               release: 0.1,
-              volume: 0.2, // Lower volume for sawtooth
+              volume: 0.2,
+              pitch: -12,
+              detune: 5,
+              modulationFrequency: 4,
+              modulationDepth: 0.15,
+              pan: 0.2,
+              fadeIn: 0.04,
+              fadeOut: 0.08,
             },
           })
       );
       return new Pizzicato.Group(sounds);
     },
 
-    Piano: (notes: string[]) => {
+    Triangle: (notes: string[]) => {
       const sounds = notes.map((note) => {
         const sound = new Pizzicato.Sound({
           source: 'wave',
           options: {
-            type: 'sine',
+            type: 'triangle',
             frequency: noteToFrequency(note),
-            attack: 0.01, // Very quick attack for piano-like response
-            release: 0.3, // Shorter release for mobile
-            volume: 0.25, // Adjusted volume
+            attack: 0.08, // Slightly slower attack for softer start
+            decay: 0.3, // Longer decay for more sustain
+            sustain: 0.9, // High sustain for continuous tone
+            release: 0.2, // Smooth release
+            volume: 0.25, // Moderate volume
+            pitch: 0,
+            detune: 2, // Slight detune for warmth
+            pan: -0.1, // Slightly panned left
+            fadeIn: 0.05, // Smooth fade in
+            fadeOut: 0.1, // Gentle fade out
           },
         });
 
-        // Simplified effects for better mobile performance
+        // Add effects for richer triangle wave sound
         const lowPassFilter = new Pizzicato.Effects.LowPassFilter({
-          frequency: 1500, // Lower frequency cutoff
-          peak: 5, // Reduced peak for less CPU usage
+          frequency: 3000, // Soften the high frequencies
+          peak: 8,
         });
 
         const reverb = new Pizzicato.Effects.Reverb({
-          time: 0.3, // Shorter reverb time
-          decay: 0.4, // Less decay
-          mix: 0.2, // Subtle reverb mix
+          time: 0.3, // Short reverb time
+          decay: 0.5, // Moderate decay
+          mix: 0.15, // Subtle reverb mix
         });
 
-        // Add effects with try-catch for better error handling
-        try {
-          sound.addEffect(lowPassFilter);
-          sound.addEffect(reverb);
-        } catch (error) {
-          console.warn('Failed to add effects:', error);
-        }
+        // Add the effects
+        sound.addEffect(lowPassFilter);
+        sound.addEffect(reverb);
 
         return sound;
       });
-
-      const group = new Pizzicato.Group(sounds);
-
-      // Set overall group volume
-      try {
-        group.volume = 0.4;
-      } catch (error) {
-        console.warn('Failed to set group volume:', error);
-      }
-
-      return group;
+      return new Pizzicato.Group(sounds);
     },
   };
 };

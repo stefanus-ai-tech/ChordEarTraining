@@ -1,7 +1,6 @@
 declare module 'pizzicato' {
   export interface PizzicatoStatic {
     context: AudioContext;
-    // ... other static properties
   }
   namespace Pizzicato {
     interface SoundOptions {
@@ -12,6 +11,18 @@ declare module 'pizzicato' {
         attack?: number;
         release?: number;
         volume?: number;
+        // Add more customization options
+        decay?: number;
+        sustain?: number;
+        pitch?: number;
+        detune?: number;
+        modulationFrequency?: number;
+        modulationDepth?: number;
+        pan?: number;
+        harmonicity?: number;
+        distortion?: number;
+        fadeIn?: number;
+        fadeOut?: number;
       };
     }
 
