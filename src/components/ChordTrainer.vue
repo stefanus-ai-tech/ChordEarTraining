@@ -12,7 +12,7 @@ import {
 import ProgressBar from './ProgressBar.vue';
 import ChordButton from './ChordButton.vue';
 import LevelInfo from './LevelInfo.vue';
-type SoundOutput = Pizzicato.Sound | Pizzicato.Group;
+// type SoundOutput = Pizzicato.Sound | Pizzicato.Group;
 type SynthType = 'Sine' | 'Square' | 'Sawtooth' | 'Piano';
 const synthTypes: SynthType[] = ['Sine', 'Square', 'Sawtooth', 'Piano'];
 const audioContext = ref<AudioContext | null>(null);
@@ -148,7 +148,7 @@ const currentProgression = ref<ChordProgression>({
 });
 const userAnswer = ref<string[]>([]);
 const userAnswerCorrectness = ref<boolean[]>([]);
-const isToneStarted = ref(false);
+// const isToneStarted = ref(false);
 const isAudioStarted = ref(false);
 const isPlaying = ref(false);
 const feedback = ref('');
