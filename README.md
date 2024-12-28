@@ -1,5 +1,84 @@
-# Vue 3 + TypeScript + Vite
+## Try the demo 
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+https://chord-ear-training.netlify.app/
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Chord Ear Training
+
+A Vue 3 + TypeScript application designed to help musicians develop their chord recognition skills through interactive ear training exercises.
+
+## Features
+
+- Progressive difficulty levels for chord recognition
+- Real-time audio feedback using Tone.js
+- Tonic guide playback to establish musical context
+- Score tracking system
+- Responsive design for both desktop and mobile use
+- Customizable chord progressions
+- Interactive chord buttons for user input
+
+## Tech Stack
+
+- Vue 3
+- TypeScript
+- Vite
+- Tone.js for audio synthesis
+- CSS for responsive styling
+
+## Prerequisites
+
+- Node.js (Latest LTS version recommended)
+- npm or yarn package manager
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/stefanus-ai-tech/ChordEarTraining
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+## Development
+
+To work on this project:
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## Project Structure
+
+- `src/` - Source files
+  - `components/` - Vue components including ChordTrainer
+  - `utils/` - Utility functions for chord and level management
+  - `types/` - TypeScript type definitions
+  - `style.css` - Global styles
+  - `main.ts` - Application entry point
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License 
+
+## Acknowledgments
+
+- Built with [Vue 3](https://vuejs.org/)
+- Audio synthesis powered by [Tone.js](https://tonejs.github.io/)
