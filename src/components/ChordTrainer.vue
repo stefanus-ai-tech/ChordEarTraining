@@ -113,22 +113,6 @@ const createSynthConfigs = () => {
           },
         });
 
-        // Add effects for richer triangle wave sound
-        const lowPassFilter = new Pizzicato.Effects.LowPassFilter({
-          frequency: 3000, // Soften the high frequencies
-          peak: 8,
-        });
-
-        const reverb = new Pizzicato.Effects.Reverb({
-          time: 0.3, // Short reverb time
-          decay: 0.5, // Moderate decay
-          mix: 0.15, // Subtle reverb mix
-        });
-
-        // Add the effects
-        sound.addEffect(lowPassFilter);
-        sound.addEffect(reverb);
-
         return sound;
       });
       return new Pizzicato.Group(sounds);
