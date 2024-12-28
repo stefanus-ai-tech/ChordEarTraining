@@ -13,18 +13,141 @@ import ProgressBar from './ProgressBar.vue';
 import ChordButton from './ChordButton.vue';
 import LevelInfo from './LevelInfo.vue';
 
-const synth = new Tone.PolySynth(Tone.Synth, {
-  oscillator: {
-    type: 'sine', // Use sine wave for smoother sound
+type SynthType = 'Smooth' | 'FM' | 'AM' | 'Duo' | 'Mono' | 'Pluck';
+
+interface SynthConfig {
+  create: () => Tone.PolySynth;
+  type: SynthType;
+}
+
+// Add this after the imports
+const synthTypes: SynthType[] = ['Smooth', 'FM', 'AM', 'Duo', 'Mono', 'Pluck'];
+
+const synthConfigs: Record<
+  SynthType,
+  {
+    create: () => Tone.PolySynth<any>;
+    type: SynthType;
+  }
+> = {
+  Smooth: {
+    create: () => new Tone.PolySynth(Tone.Synth).toDestination(),
+    type: 'Smooth',
   },
-  envelope: {
-    attack: 0.1, // Gradual attack for smoother start
-    decay: 0.2, // Smooth decay
-    sustain: 0.8, // High sustain level
-    release: 1.5, // Longer release for smoother end
+  FM: {
+    create: () => new Tone.PolySynth(Tone.FMSynth).toDestination(),
+    type: 'FM',
   },
-  volume: -8, // Slightly reduce volume to prevent clipping
-}).toDestination();
+  AM: {
+    create: () => new Tone.PolySynth(Tone.AMSynth).toDestination(),
+    type: 'AM',
+  },
+  Duo: {
+    create: () => new Tone.PolySynth(Tone.DuoSynth).toDestination(),
+    type: 'Duo',
+  },
+  Mono: {
+    create: () => new Tone.PolySynth(Tone.MonoSynth).toDestination(),
+    type: 'Mono',
+  },
+  Pluck: {
+    create: () => {
+      // Create a polyphonic wrapper for PluckSynth
+      const voices = Array.from({ length: 6 }, () =>
+        new Tone.PluckSynth({
+          attackNoise: 1,
+          dampening: 1000,
+          resonance: 0.98,
+          release: 2,
+        }).toDestination()
+      );
+
+      // Create a reverb effect
+      const reverb = new Tone.Reverb({
+        decay: 3,
+        wet: 0.3,
+        preDelay: 0.1,
+      }).toDestination();
+
+      // Connect voices to reverb
+      voices.forEach((voice) => voice.connect(reverb));
+
+      let activeVoices = new Map<string, number>();
+      let nextVoice = 0;
+
+      return {
+        triggerAttackRelease: (notes: string[], duration: number) => {
+          // Clean up any previous notes
+          activeVoices.clear();
+
+          notes.forEach((note) => {
+            // Use round-robin voice allocation
+            const voiceIndex = nextVoice;
+            nextVoice = (nextVoice + 1) % voices.length;
+
+            const voice = voices[voiceIndex];
+            if (voice) {
+              voice.triggerAttackRelease(note, duration);
+              activeVoices.set(note, voiceIndex);
+            }
+          });
+        },
+        triggerRelease: (notes: string[]) => {
+          notes.forEach((note) => {
+            const voiceIndex = activeVoices.get(note);
+            if (typeof voiceIndex === 'number') {
+              voices[voiceIndex].triggerRelease();
+            }
+          });
+        },
+        releaseAll: () => {
+          voices.forEach((voice) => voice.triggerRelease());
+          activeVoices.clear();
+        },
+        dispose: () => {
+          voices.forEach((voice) => voice.dispose());
+          reverb.dispose();
+        },
+      } as unknown as Tone.PolySynth<any>;
+    },
+    type: 'Pluck',
+  },
+};
+
+const currentSynthType = ref<SynthType>('Smooth');
+
+const synths = new Map<SynthType, Tone.PolySynth<any>>();
+// Replace the existing synth declaration with this factory function
+// Replace the existing synth declaration with these functions
+const createSynth = (type: SynthType) => {
+  const synth = synthConfigs[type].create();
+  synths.set(type, synth);
+  return synth;
+};
+
+let synth = createSynth('Smooth');
+
+const changeSynthType = (type: SynthType) => {
+  let nextSynth = synths.get(type);
+  if (!nextSynth) {
+    nextSynth = createSynth(type);
+  }
+  synth = nextSynth;
+  currentSynthType.value = type;
+};
+
+// const synth = new Tone.PolySynth(Tone.Synth, {
+//   oscillator: {
+//     type: 'sine', // Use sine wave for smoother sound
+//   },
+//   envelope: {
+//     attack: 0.1, // Gradual attack for smoother start
+//     decay: 0.2, // Smooth decay
+//     sustain: 0.8, // High sustain level
+//     release: 1.5, // Longer release for smoother end
+//   },
+//   volume: -8, // Slightly reduce volume to prevent clipping
+// }).toDestination();
 const currentLevel = ref(1);
 const score = ref(0);
 const useRandomTonic = ref(true);
@@ -204,28 +327,41 @@ defineExpose({
 
 <template>
   <div class="chord-trainer">
-    <div class="settings">
-      <div class="setting-group">
-        <label>Level: </label>
-        <select v-model="currentLevel" :disabled="!startButtonVisible">
-          <option
-            v-for="level in levels"
-            :key="level.number"
-            :value="level.number">
-            Level {{ level.number }}
-          </option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label>
-          <input
-            type="checkbox"
-            v-model="useRandomTonic"
-            :disabled="!startButtonVisible" />
-          Random Tonic
-        </label>
+    <div class="settings-panel">
+      <div class="settings-row">
+        <div class="sound-type-selector">
+          <label>Sound Type:</label>
+          <div class="sound-buttons">
+            <button
+              v-for="type in synthTypes"
+              :key="type"
+              :class="['sound-button', { active: currentSynthType === type }]"
+              @click="changeSynthType(type)">
+              {{ type }}
+            </button>
+          </div>
+        </div>
+        <div class="level-selector">
+          <label>Level:</label>
+          <select v-model="currentLevel" :disabled="!startButtonVisible">
+            <option
+              v-for="level in levels"
+              :key="level.number"
+              :value="level.number">
+              Level {{ level.number }}
+            </option>
+          </select>
+          <label class="random-tonic">
+            <input
+              type="checkbox"
+              v-model="useRandomTonic"
+              :disabled="!startButtonVisible" />
+            Random Tonic
+          </label>
+        </div>
       </div>
     </div>
+
     <div class="instructions">
       [Instruction] In every question, there is chord progression I IV V I, then
       the chord you should guess is after that chord progression.
@@ -323,6 +459,99 @@ defineExpose({
 </template>
 
 <style scoped>
+.chord-trainer {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.settings-panel {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-row {
+  display: flex;
+  gap: 1rem;
+  align-items: start;
+}
+
+.sound-type-selector {
+  flex: 1;
+}
+
+.sound-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sound-button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+}
+
+.sound-button.active {
+  background: #007bff;
+  color: white;
+}
+
+.level-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.random-tonic {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.instructions {
+  background: #e9ecef;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+label {
+  font-weight: 500;
+  color: #495057;
+}
+
+select {
+  padding: 0.25rem;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.sound-type-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sound-type-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sound-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 .settings {
   display: flex;
   gap: 1rem;
