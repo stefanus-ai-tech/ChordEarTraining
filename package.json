@@ -9,8 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.38",
-    "tone": "^14.7.77"
+    "pizzicato": "^0.6.4",
+    "tone": "^14.7.77",
+    "vue": "^3.4.38"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.3",

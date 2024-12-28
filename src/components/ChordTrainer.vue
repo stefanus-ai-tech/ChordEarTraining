@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, defineExpose } from 'vue';
-import * as Tone from 'tone';
+import { ref, onMounted, defineExpose, computed } from 'vue';
+import Pizzicato from 'pizzicato';
 import type { Chord, ChordProgression } from '../types';
 import { chords, getRandomVoicing, majorKeys } from '../utils/chords';
 import {
@@ -12,190 +12,129 @@ import {
 import ProgressBar from './ProgressBar.vue';
 import ChordButton from './ChordButton.vue';
 import LevelInfo from './LevelInfo.vue';
+type SoundOutput = Pizzicato.Sound | Pizzicato.Group;
+type SynthType = 'Sine' | 'Square' | 'Sawtooth' | 'Piano';
+const synthTypes: SynthType[] = ['Sine', 'Square', 'Sawtooth', 'Piano'];
+const audioContext = ref<AudioContext | null>(null);
 
-type SynthType = 'Smooth' | 'FM' | 'AM' | 'Duo' | 'Mono' | 'Pluck';
-
-// interface SynthConfig {
-//   create: () => Tone.PolySynth;
-//   type: SynthType;
-// }
-
-// Add this after the imports
-const synthTypes: SynthType[] = ['Smooth', 'FM', 'AM', 'Duo', 'Mono', 'Pluck'];
-const isToneStarted = ref(false); // Add a ref to track if Tone.js is started
-
-const synthConfigs: Record<
-  SynthType,
-  {
-    create: () => Tone.PolySynth<any>;
-    type: SynthType;
-  }
-> = {
-  Smooth: {
-    create: () => {
-      // Single shared limiter for better performance
-      const limiter = new Tone.Limiter(-6).toDestination();
-
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: {
-          type: 'sine', // Sine waves are computationally lighter than complex waveforms
-        },
-        envelope: {
-          attack: 0.1, // Slightly longer attack to prevent clicks
-          decay: 0.1,
-          sustain: 0.5,
-          release: 0.3, // Shorter release for less CPU usage
-        },
-        volume: -15,
-      }).connect(limiter);
-    },
-    type: 'Smooth',
-  },
-  FM: {
-    create: () => {
-      const limiter = new Tone.Limiter(-6).toDestination();
-      return new Tone.PolySynth(Tone.FMSynth, {
-        modulationIndex: 5, // Reduced from 10
-        harmonicity: 2, // Reduced from 3
-        envelope: {
-          attack: 0.1,
-          decay: 0.1,
-          sustain: 0.5,
-          release: 0.3,
-        },
-        volume: -18,
-      }).connect(limiter);
-    },
-    type: 'FM',
-  },
-  AM: {
-    create: () => {
-      const limiter = new Tone.Limiter(-6).toDestination();
-      return new Tone.PolySynth(Tone.AMSynth, {
-        harmonicity: 1.5, // Reduced from 2
-        envelope: {
-          attack: 0.1,
-          decay: 0.1,
-          sustain: 0.5,
-          release: 0.3,
-        },
-        volume: -18,
-      }).connect(limiter);
-    },
-    type: 'AM',
-  },
-  Duo: {
-    create: () => {
-      const limiter = new Tone.Limiter(-6).toDestination();
-      return new Tone.PolySynth(Tone.DuoSynth, {
-        vibratoAmount: 0.3, // Reduced from 0.5
-        vibratoRate: 4, // Reduced from 5
-        harmonicity: 1.25, // Reduced from 1.5
-        volume: -20,
-      }).connect(limiter);
-    },
-    type: 'Duo',
-  },
-  Mono: {
-    create: () => {
-      const limiter = new Tone.Limiter(-6).toDestination();
-      return new Tone.PolySynth(Tone.MonoSynth, {
-        envelope: {
-          attack: 0.1,
-          decay: 0.1,
-          sustain: 0.5,
-          release: 0.3,
-        },
-        volume: -18,
-      }).connect(limiter);
-    },
-    type: 'Mono',
-  },
-  Pluck: {
-    create: () => {
-      const limiter = new Tone.Limiter(-6).toDestination();
-      // Reduced number of voices
-      const voices = Array.from({ length: 3 }, () =>
-        new Tone.PluckSynth({
-          attackNoise: 0.3, // Reduced from 0.5
-          dampening: 2500, // Increased for shorter decay
-          resonance: 0.9, // Reduced slightly
-          release: 0.8, // Reduced from 1
-          volume: -15,
-        }).connect(limiter)
+const createSynthConfigs = () => {
+  return {
+    Sine: (notes: string[]) => {
+      const sounds = notes.map(
+        (note) =>
+          new Pizzicato.Sound({
+            source: 'wave',
+            options: {
+              type: 'sine',
+              frequency: noteToFrequency(note),
+              attack: 0.1,
+              release: 0.3,
+              volume: 0.5,
+            },
+          })
       );
-
-      // Lighter reverb settings
-      const reverb = new Tone.Reverb({
-        decay: 1.0, // Reduced from 1.5
-        wet: 0.15, // Reduced from 0.2
-        preDelay: 0.03, // Reduced from 0.05
-      }).connect(limiter);
-
-      voices.forEach((voice) => voice.connect(reverb));
-
-      let activeVoices = new Map<string, number>();
-      let nextVoice = 0;
-
-      return {
-        triggerAttackRelease: (notes: string[], duration: number) => {
-          // Limit the number of simultaneous notes for mobile
-          const maxSimultaneousNotes = 3;
-          const limitedNotes = notes.slice(0, maxSimultaneousNotes);
-
-          activeVoices.clear();
-
-          limitedNotes.forEach((note) => {
-            const voiceIndex = nextVoice;
-            nextVoice = (nextVoice + 1) % voices.length;
-
-            const voice = voices[voiceIndex];
-            if (voice) {
-              voice.triggerAttackRelease(note, duration);
-              activeVoices.set(note, voiceIndex);
-            }
-          });
-        },
-        triggerRelease: (notes: string[]) => {
-          notes.forEach((note) => {
-            const voiceIndex = activeVoices.get(note);
-            if (typeof voiceIndex === 'number') {
-              voices[voiceIndex].triggerRelease();
-            }
-          });
-        },
-        releaseAll: () => {
-          voices.forEach((voice) => voice.triggerRelease());
-          activeVoices.clear();
-        },
-        dispose: () => {
-          voices.forEach((voice) => voice.dispose());
-          reverb.dispose();
-        },
-      } as unknown as Tone.PolySynth<any>;
+      return new Pizzicato.Group(sounds);
     },
-    type: 'Pluck',
-  },
+
+    Square: (notes: string[]) => {
+      const sounds = notes.map(
+        (note) =>
+          new Pizzicato.Sound({
+            source: 'wave',
+            options: {
+              type: 'square',
+              frequency: noteToFrequency(note),
+              attack: 0.1,
+              release: 0.3,
+              volume: 0.5,
+            },
+          })
+      );
+      return new Pizzicato.Group(sounds);
+    },
+
+    Sawtooth: (notes: string[]) => {
+      const sounds = notes.map(
+        (note) =>
+          new Pizzicato.Sound({
+            source: 'wave',
+            options: {
+              type: 'sawtooth',
+              frequency: noteToFrequency(note),
+              attack: 0.1,
+              release: 0.3,
+              volume: 0.3,
+            },
+          })
+      );
+      return new Pizzicato.Group(sounds);
+    },
+
+    Piano: (notes: string[]) => {
+      const sounds = notes.map((note) => {
+        const sound = new Pizzicato.Sound({
+          source: 'wave',
+          options: {
+            type: 'sine',
+            frequency: noteToFrequency(note),
+            attack: 0.02,
+            release: 0.8,
+            volume: 0.4,
+          },
+        });
+
+        const lowPassFilter = new Pizzicato.Effects.LowPassFilter({
+          frequency: 2000,
+          peak: 10,
+        });
+
+        const reverb = new Pizzicato.Effects.Reverb({
+          time: 0.6,
+          decay: 0.8,
+          mix: 0.3,
+        });
+
+        sound.addEffect(lowPassFilter);
+        sound.addEffect(reverb);
+        return sound;
+      });
+      return new Pizzicato.Group(sounds);
+    },
+  };
 };
 
-const currentSynthType = ref<SynthType>('Smooth');
+const synthConfigs = computed(() => {
+  if (!isAudioStarted.value) return null;
+  return createSynthConfigs();
+});
 
-const synths = new Map<SynthType, Tone.PolySynth<any>>(); // Keep synths as a map
+const currentSynthType = ref<SynthType>('Sine');
+let currentSound: Pizzicato.Sound | Pizzicato.Group | null = null;
 
-const createSynth = (type: SynthType) => {
-  const synth = synthConfigs[type].create();
-  synths.set(type, synth);
-  return synth;
-};
-
-let synth: Tone.PolySynth<any>; // Declare synth outside for proper typing
+// Helper function to convert note names to frequencies
+function noteToFrequency(note: string): number {
+  const A4 = 440;
+  const notes = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B',
+  ];
+  const octave = parseInt(note.slice(-1));
+  const semitone = notes.indexOf(note.slice(0, -1));
+  const N = semitone - 9 + (octave - 4) * 12;
+  return A4 * Math.pow(2, N / 12);
+}
 
 const changeSynthType = (type: SynthType) => {
-  let nextSynth = synths.get(type);
-  if (!nextSynth) {
-    nextSynth = createSynth(type);
-  }
-  synth = nextSynth;
   currentSynthType.value = type;
 };
 
@@ -209,6 +148,8 @@ const currentProgression = ref<ChordProgression>({
 });
 const userAnswer = ref<string[]>([]);
 const userAnswerCorrectness = ref<boolean[]>([]);
+const isToneStarted = ref(false);
+const isAudioStarted = ref(false);
 const isPlaying = ref(false);
 const feedback = ref('');
 const buttonsEnabled = ref(true);
@@ -216,11 +157,37 @@ const nextEnabled = ref(false);
 const completionMessageVisible = ref(false);
 const startButtonVisible = ref(true);
 
+const startAudio = async () => {
+  try {
+    // Access the audioContext through Pizzicato's internal property
+    const context =
+      (Pizzicato as any).context || (window as any).Pizzicato?.context;
+    if (context?.state === 'suspended') {
+      await context.resume();
+    }
+    isAudioStarted.value = true;
+    console.log('Audio context started successfully');
+  } catch (error) {
+    console.error('Failed to start audio context:', error);
+  }
+};
+
 const playChord = async (chord: Chord) => {
-  if (!isToneStarted.value) return; // Don't play if Tone.js isn't started
+  if (currentSound) {
+    currentSound.stop();
+  }
   const notes = getRandomVoicing(chord.roman, currentProgression.value.key);
-  synth.triggerAttackRelease(notes, '1n');
+  if (!synthConfigs.value) {
+    console.error('Synth configs not initialized');
+    return;
+  }
+
+  currentSound = synthConfigs.value[currentSynthType.value](notes);
+  currentSound.play();
   await new Promise((resolve) => setTimeout(resolve, 2000));
+  if (currentSound) {
+    currentSound.stop();
+  }
 };
 
 const backspace = () => {
@@ -272,7 +239,7 @@ const playTonicGuide = async () => {
 };
 
 const playProgression = async () => {
-  if (!isToneStarted.value || isPlaying.value) return;
+  if (!isAudioStarted.value || isPlaying.value || !synthConfigs.value) return;
   isPlaying.value = true;
   buttonsEnabled.value = false;
   await playTonicGuide();
@@ -341,15 +308,10 @@ const nextQuestion = () => {
 };
 
 const startGame = async () => {
-  if (!isToneStarted.value) {
-    await Tone.start();
-    isToneStarted.value = true;
-    // Create default synth after starting
-    if (!synths.has(currentSynthType.value)) {
-      createSynth(currentSynthType.value);
-    }
-    synth = synths.get(currentSynthType.value)!; // Assign the initial synth
+  if (!audioContext.value) {
+    audioContext.value = new AudioContext();
   }
+  startAudio();
   generateProgression();
   playProgression();
   startButtonVisible.value = false;
@@ -382,6 +344,12 @@ defineExpose({
 
 <template>
   <div class="chord-trainer">
+    <div v-if="!isAudioStarted" class="start-overlay">
+      <button @click="startAudio" class="start-button">
+        Click to Start Audio
+      </button>
+    </div>
+
     <div class="settings-panel">
       <div class="settings-row">
         <div class="sound-type-selector">
