@@ -337,7 +337,7 @@ defineExpose({
               :key="type"
               :class="['sound-button', { active: currentSynthType === type }]"
               @click="changeSynthType(type)">
-              {{ type }}
+              {{ type.length > 2 ? type.substring(0, 2) : type }}
             </button>
           </div>
         </div>
@@ -356,6 +356,7 @@ defineExpose({
               type="checkbox"
               v-model="useRandomTonic"
               :disabled="!startButtonVisible" />
+            <span class="checkmark"></span>
             Random Tonic
           </label>
         </div>
@@ -483,18 +484,20 @@ defineExpose({
 }
 
 .sound-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .sound-button {
   padding: 0.25rem 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
+  flex-grow: 1;
+  /* Make buttons expand to fill the space */
 }
 
 .sound-button.active {
@@ -513,6 +516,57 @@ defineExpose({
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
+  position: relative;
+  /* Ensure the checkmark is positioned correctly */
+}
+
+/* Hide the default checkbox */
+.random-tonic input[type='checkbox'] {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+/* Style the custom checkmark */
+.random-tonic .checkmark {
+  position: relative;
+  top: 0;
+  left: 0;
+  height: 16px;
+  width: 16px;
+  background-color: #eee;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Create the checkmark/indicator (hidden when not checked) */
+.random-tonic .checkmark:after {
+  content: '';
+  position: absolute;
+  display: none;
+}
+
+/* Show the checkmark when checked */
+.random-tonic input:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* Style the checkmark/indicator */
+.random-tonic .checkmark:after {
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Change background color when checked */
+.random-tonic input:checked ~ .checkmark {
+  background-color: #2196f3;
 }
 
 .instructions {
@@ -541,17 +595,6 @@ select {
   gap: 0.5rem;
 }
 
-.sound-type-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.sound-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
 .settings {
   display: flex;
   gap: 1rem;
