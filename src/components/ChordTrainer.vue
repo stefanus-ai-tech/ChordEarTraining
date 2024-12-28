@@ -27,9 +27,9 @@ const createSynthConfigs = () => {
             options: {
               type: 'sine',
               frequency: noteToFrequency(note),
-              attack: 0.1,
-              release: 0.3,
-              volume: 0.5,
+              attack: 0.05, // Faster attack for better mobile response
+              release: 0.1, // Shorter release to prevent audio buildup
+              volume: 0.3, // Lower volume to prevent distortion on mobile
             },
           })
       );
@@ -44,9 +44,9 @@ const createSynthConfigs = () => {
             options: {
               type: 'square',
               frequency: noteToFrequency(note),
-              attack: 0.1,
-              release: 0.3,
-              volume: 0.5,
+              attack: 0.05,
+              release: 0.1,
+              volume: 0.2, // Even lower volume for square wave as it's harsher
             },
           })
       );
@@ -61,9 +61,9 @@ const createSynthConfigs = () => {
             options: {
               type: 'sawtooth',
               frequency: noteToFrequency(note),
-              attack: 0.1,
-              release: 0.3,
-              volume: 0.3,
+              attack: 0.05,
+              release: 0.1,
+              volume: 0.2, // Lower volume for sawtooth
             },
           })
       );
@@ -77,28 +77,45 @@ const createSynthConfigs = () => {
           options: {
             type: 'sine',
             frequency: noteToFrequency(note),
-            attack: 0.02,
-            release: 0.8,
-            volume: 0.4,
+            attack: 0.01, // Very quick attack for piano-like response
+            release: 0.3, // Shorter release for mobile
+            volume: 0.25, // Adjusted volume
           },
         });
 
+        // Simplified effects for better mobile performance
         const lowPassFilter = new Pizzicato.Effects.LowPassFilter({
-          frequency: 2000,
-          peak: 10,
+          frequency: 1500, // Lower frequency cutoff
+          peak: 5, // Reduced peak for less CPU usage
         });
 
         const reverb = new Pizzicato.Effects.Reverb({
-          time: 0.6,
-          decay: 0.8,
-          mix: 0.3,
+          time: 0.3, // Shorter reverb time
+          decay: 0.4, // Less decay
+          mix: 0.2, // Subtle reverb mix
         });
 
-        sound.addEffect(lowPassFilter);
-        sound.addEffect(reverb);
+        // Add effects with try-catch for better error handling
+        try {
+          sound.addEffect(lowPassFilter);
+          sound.addEffect(reverb);
+        } catch (error) {
+          console.warn('Failed to add effects:', error);
+        }
+
         return sound;
       });
-      return new Pizzicato.Group(sounds);
+
+      const group = new Pizzicato.Group(sounds);
+
+      // Set overall group volume
+      try {
+        group.volume = 0.4;
+      } catch (error) {
+        console.warn('Failed to set group volume:', error);
+      }
+
+      return group;
     },
   };
 };
@@ -344,12 +361,6 @@ defineExpose({
 
 <template>
   <div class="chord-trainer">
-    <div v-if="!isAudioStarted" class="start-overlay">
-      <button @click="startAudio" class="start-button">
-        Click to Start Audio
-      </button>
-    </div>
-
     <div class="settings-panel">
       <div class="settings-row">
         <div class="sound-type-selector">
