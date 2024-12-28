@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, defineExpose } from 'vue';
-
-const startButtonVisible = ref(true);
 import * as Tone from 'tone';
 import type { Chord, ChordProgression } from '../types';
 import { chords, getRandomVoicing, majorKeys } from '../utils/chords';
@@ -29,6 +27,7 @@ const synth = new Tone.PolySynth(Tone.Synth, {
 }).toDestination();
 const currentLevel = ref(1);
 const score = ref(0);
+const useRandomTonic = ref(true);
 const currentQuestionNumber = ref(1);
 const currentProgression = ref<ChordProgression>({
   key: 'C',
@@ -41,6 +40,7 @@ const feedback = ref('');
 const buttonsEnabled = ref(true);
 const nextEnabled = ref(false);
 const completionMessageVisible = ref(false);
+const startButtonVisible = ref(true);
 
 const playChord = async (chord: Chord) => {
   // Pass both the roman numeral and the current key
@@ -56,12 +56,16 @@ const generateProgression = () => {
   const availableChords = currentLevelData?.availableChords || [];
   const chordsPerQuestion = currentLevelData?.chordsPerQuestion || 2;
 
-  // Get a random key that's different from the current key
-  let newKey;
-  do {
-    newKey = majorKeys[Math.floor(Math.random() * majorKeys.length)];
-  } while (newKey === currentProgression.value.key);
-
+  let newKey = 'C';
+  // Only change key if random tonic is enabled
+  if (useRandomTonic.value) {
+    do {
+      newKey = majorKeys[Math.floor(Math.random() * majorKeys.length)];
+    } while (newKey === currentProgression.value.key);
+    currentProgression.value.key = newKey;
+  } else {
+    currentProgression.value.key = 'C'; // Default to C if random tonic is disabled
+  }
   // Update the key in the current progression
   currentProgression.value.key = newKey;
 
@@ -193,9 +197,31 @@ defineExpose({
 
 <template>
   <div class="chord-trainer">
+    <div class="settings">
+      <div class="setting-group">
+        <label>Level: </label>
+        <select v-model="currentLevel" :disabled="!startButtonVisible">
+          <option
+            v-for="level in levels"
+            :key="level.number"
+            :value="level.number">
+            Level {{ level.number }}
+          </option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>
+          <input
+            type="checkbox"
+            v-model="useRandomTonic"
+            :disabled="!startButtonVisible" />
+          Random Tonic
+        </label>
+      </div>
+    </div>
     <div class="instructions">
-      How to play this game: In every question, there is cadence I IV V I, then
-      the chord you should guess is after that cadence.
+      [Instruction] In every question, there is chord progression I IV V I, then
+      the chord you should guess is after that chord progression.
     </div>
     <LevelInfo :current-level="currentLevel" />
     <ProgressBar
@@ -284,12 +310,38 @@ defineExpose({
 </template>
 
 <style scoped>
+.settings {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  justify-content: center;
+}
+
+.setting-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setting-group select {
+  padding: 0.3rem;
+  border-radius: 4px;
+  border: 1px solid #2196f3;
+}
+
+.setting-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .instructions {
   margin-bottom: 1rem;
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: #333;
   /* to center the text */
   text-align: center;
+  font-weight: bold;
 }
 
 .chord-trainer {
