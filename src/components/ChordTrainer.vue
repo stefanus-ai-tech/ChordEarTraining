@@ -32,47 +32,114 @@ const synthConfigs: Record<
   }
 > = {
   Smooth: {
-    create: () => new Tone.PolySynth(Tone.Synth).toDestination(),
+    create: () => {
+      const limiter = new Tone.Limiter(-3).toDestination();
+      const compressor = new Tone.Compressor({
+        threshold: -24,
+        ratio: 12,
+        attack: 0.003,
+        release: 0.25,
+      }).connect(limiter);
+
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: {
+          type: 'sine',
+        },
+        envelope: {
+          attack: 0.05,
+          decay: 0.1,
+          sustain: 0.6,
+          release: 0.5,
+        },
+        volume: -12,
+      }).connect(compressor);
+    },
     type: 'Smooth',
   },
   FM: {
-    create: () => new Tone.PolySynth(Tone.FMSynth).toDestination(),
+    create: () => {
+      const limiter = new Tone.Limiter(-3).toDestination();
+      return new Tone.PolySynth(Tone.FMSynth, {
+        modulationIndex: 10,
+        harmonicity: 3,
+        envelope: {
+          attack: 0.05,
+          decay: 0.1,
+          sustain: 0.6,
+          release: 0.5,
+        },
+        volume: -15,
+      }).connect(limiter);
+    },
     type: 'FM',
   },
   AM: {
-    create: () => new Tone.PolySynth(Tone.AMSynth).toDestination(),
+    create: () => {
+      const limiter = new Tone.Limiter(-3).toDestination();
+      return new Tone.PolySynth(Tone.AMSynth, {
+        harmonicity: 2,
+        envelope: {
+          attack: 0.05,
+          decay: 0.1,
+          sustain: 0.6,
+          release: 0.5,
+        },
+        volume: -15,
+      }).connect(limiter);
+    },
     type: 'AM',
   },
   Duo: {
-    create: () => new Tone.PolySynth(Tone.DuoSynth).toDestination(),
+    create: () => {
+      const limiter = new Tone.Limiter(-3).toDestination();
+      return new Tone.PolySynth(Tone.DuoSynth, {
+        vibratoAmount: 0.5,
+        vibratoRate: 5,
+        harmonicity: 1.5,
+        volume: -18,
+      }).connect(limiter);
+    },
     type: 'Duo',
   },
   Mono: {
-    create: () => new Tone.PolySynth(Tone.MonoSynth).toDestination(),
+    create: () => {
+      const limiter = new Tone.Limiter(-3).toDestination();
+      return new Tone.PolySynth(Tone.MonoSynth, {
+        envelope: {
+          attack: 0.05,
+          decay: 0.1,
+          sustain: 0.6,
+          release: 0.5,
+        },
+        volume: -15,
+      }).connect(limiter);
+    },
     type: 'Mono',
   },
   Pluck: {
     create: () => {
-      // Create a polyphonic wrapper for PluckSynth
-      const voices = Array.from({ length: 6 }, () =>
+      const limiter = new Tone.Limiter(-3).toDestination();
+      const voices = Array.from({ length: 4 }, () =>
+        // Reduced from 6 to 4 voices
         new Tone.PluckSynth({
-          attackNoise: 1,
-          dampening: 1000,
-          resonance: 0.98,
-          release: 2,
-        }).toDestination()
+          attackNoise: 0.5, // Reduced from 1
+          dampening: 2000, // Increased from 1000
+          resonance: 0.95, // Slightly reduced
+          release: 1, // Reduced from 2
+          volume: -12,
+        }).connect(limiter)
       );
 
-      // Create a reverb effect
+      // Lighter reverb settings
       const reverb = new Tone.Reverb({
-        decay: 3,
-        wet: 0.3,
-        preDelay: 0.1,
-      }).toDestination();
+        decay: 1.5, // Reduced from 3
+        wet: 0.2, // Reduced from 0.3
+        preDelay: 0.05, // Reduced from 0.1
+      }).connect(limiter);
 
-      // Connect voices to reverb
       voices.forEach((voice) => voice.connect(reverb));
 
+      // Rest of the Pluck implementation remains the same
       let activeVoices = new Map<string, number>();
       let nextVoice = 0;
 
@@ -136,18 +203,6 @@ const changeSynthType = (type: SynthType) => {
   currentSynthType.value = type;
 };
 
-// const synth = new Tone.PolySynth(Tone.Synth, {
-//   oscillator: {
-//     type: 'sine', // Use sine wave for smoother sound
-//   },
-//   envelope: {
-//     attack: 0.1, // Gradual attack for smoother start
-//     decay: 0.2, // Smooth decay
-//     sustain: 0.8, // High sustain level
-//     release: 1.5, // Longer release for smoother end
-//   },
-//   volume: -8, // Slightly reduce volume to prevent clipping
-// }).toDestination();
 const currentLevel = ref(1);
 const score = ref(0);
 const useRandomTonic = ref(true);
