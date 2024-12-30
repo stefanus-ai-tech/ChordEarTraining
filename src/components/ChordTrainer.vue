@@ -495,22 +495,38 @@ defineExpose({
 
 <style scoped>
 .chord-trainer {
-  max-width: 600px;
+  max-width: 480px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 480px) {
+  .chord-trainer {
+    padding: 0.5rem;
+    max-width: 100%;
+  }
 }
 
 .settings-panel {
-  background: #f8f9fa;
+  background: rgba(248, 249, 250, 0.9);
   border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+}
+
+.settings-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .settings-row {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: start;
+  flex-wrap: wrap;
 }
 
 .sound-type-selector {
@@ -519,8 +535,8 @@ defineExpose({
 
 .sound-buttons {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
   flex-wrap: wrap;
 }
 
@@ -531,12 +547,31 @@ defineExpose({
   border-radius: 4px;
   background: white;
   flex-grow: 1;
-  /* Make buttons expand to fill the space */
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.sound-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .sound-button.active {
   background: #007bff;
   color: white;
+  animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .level-selector {
@@ -604,12 +639,19 @@ defineExpose({
 }
 
 .instructions {
-  background: #e9ecef;
-  padding: 0.75rem;
+  background: rgba(233, 236, 239, 0.9);
+  padding: 0.5rem;
   border-radius: 6px;
-  margin: 1rem 0;
-  font-size: 0.9rem;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
   text-align: center;
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+}
+
+.instructions:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 label {
@@ -686,17 +728,18 @@ h2 {
 }
 
 .controls {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   display: flex;
   gap: 0.5rem;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .chord-buttons {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   justify-content: center;
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
   flex-wrap: wrap;
 }
 
@@ -709,6 +752,18 @@ h2 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .primary-button:hover:not(:disabled) {
@@ -733,26 +788,45 @@ h2 {
 }
 
 .answer-section {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   text-align: center;
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .answer-display {
-  margin: 0.75rem 0;
-  padding: 0.75rem;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #555;
   background: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.answer-display:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .feedback {
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #666;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.5s ease;
 }
 
 .feedback.correct {
